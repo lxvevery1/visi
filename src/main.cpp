@@ -4,6 +4,7 @@
 
 #include <cmath> // for sin, cos
 #include <iostream>
+#include <sdbus-c++/IProxy.h>
 #include <string>  // for string, basic_string
 #include <utility> // for move
 #include <vector>  // for vector, __alloc_traits<>::value_type
@@ -18,71 +19,13 @@
 #include <ftxui/screen/color.hpp> // for Color, Color::Red, Color::Blue, Color::Green, ftxui
 #include <ftxui/screen/screen.hpp> // for Pixel
 
-#include <pulse/error.h>
-#include <pulse/simple.h>
+#include <fftw3.h>
+
+#include <sdbus-c++/sdbus-c++.h>
 
 using namespace ftxui;
 
-int pulse_sound_detect() {
-    // Define the PulseAudio stream parameters
-    pa_sample_spec ss;
-    ss.format = PA_SAMPLE_S16LE; // 16-bit signed integer, little-endian
-    ss.rate = 44100;             // 44.1 kHz
-    ss.channels = 2;             // Stereo
-
-    // Create a PulseAudio simple stream
-    pa_simple* s = nullptr;
-    int error;
-
-    s = pa_simple_new(nullptr,                  // Use the default server
-                      "Audio Detection",        // Application name
-                      PA_STREAM_RECORD,         // We are recording (listening)
-                      nullptr,                  // Use the default device
-                      "Audio Detection Stream", // Stream description
-                      &ss,                      // Sample format
-                      nullptr,                  // Default channel map
-                      nullptr,                  // Default buffering attributes
-                      &error                    // Error code
-    );
-
-    if (!s) {
-        std::cerr << "Failed to create PulseAudio stream: "
-                  << pa_strerror(error) << std::endl;
-        return 1;
-    }
-
-    // Buffer to hold the audio data
-    const int buffer_size = 1024;
-    char buffer[buffer_size];
-
-    // Read audio data from the stream
-    if (pa_simple_read(s, buffer, buffer_size, &error) < 0) {
-        std::cerr << "Failed to read from PulseAudio stream: "
-                  << pa_strerror(error) << std::endl;
-        pa_simple_free(s);
-        return 1;
-    }
-
-    // Check if the buffer contains non-zero data
-    bool audio_playing = false;
-    for (int i = 0; i < buffer_size; ++i) {
-        if (buffer[i] != 0) {
-            audio_playing = true;
-            break;
-        }
-    }
-
-    std::cout << (audio_playing ? "Audio is playing." : "No audio detected.")
-              << std::endl;
-
-    // Clean up
-    pa_simple_free(s);
-
-    return 1;
-}
-
-int main() {
-    // pulse_sound_detect();
+void ui() {
 
     // Some variables for mouse tracking
     int mouse_x = 0;
@@ -95,17 +38,15 @@ int main() {
     const std::string TITLE = "Audio Visualizer";
 
     // Plot rendering
-    auto renderer_plot_2 = Renderer([&] {
+    auto renderer_plot = Renderer([&] {
         auto c = Canvas(CANVAS_SIZE_X, CANVAS_SIZE_Y);
         c.DrawText(CANVAS_SIZE_X / 3.5, 0, TITLE);
 
         std::vector<int> ys(CANVAS_SIZE_X);
         for (int x = 0; x < CANVAS_SIZE_X; x++) {
-            ys[x] = int(30 +                                //
-                        10 * cos(x * 0.2 + mouse_x * 0.1) + //
-                        5 * -sin(x * 0.4) +                 //
-                        5 * cos(x * 0.3 + mouse_y * 0.1));  //
+            ys[x] = int(0.12 * 100 * sin(x));
         }
+
         for (int x = 0; x < CANVAS_SIZE_X; x++) {
             c.DrawPointLine(x, CANVAS_SIZE_Y / 2 + ys[x], x,
                             CANVAS_SIZE_Y / 2 - ys[x], COLOR_EQI);
@@ -118,7 +59,7 @@ int main() {
     int selected_tab = 0;
     auto tab = Container::Tab(
         {
-            renderer_plot_2,
+            renderer_plot,
         },
         &selected_tab);
 
@@ -145,6 +86,54 @@ int main() {
 
     auto screen = ScreenInteractive::FitComponent();
     screen.Loop(component_renderer);
+}
 
+int dbus_get_audio_name() {
+    try {
+        // Create a connection to the system bus
+        std::unique_ptr<sdbus::IConnection> connection =
+            sdbus::createSystemBusConnection();
+        std::cout << "Connected to system bus." << std::endl;
+
+        sdbus::ServiceName destination{"org.mpris.MediaPlayer2.mpv"};
+        sdbus::ObjectPath objectPath{"/org/mpris/MediaPlayer2"};
+
+        // Create a proxy for the mpv player interface
+        auto proxy = sdbus::createProxy(destination, objectPath);
+        std::cout << "Proxy created for " << destination << " at " << objectPath
+                  << std::endl;
+
+        // Call the Get method on the Metadata property
+        std::map<std::string, sdbus::Variant> metadata;
+        auto props = proxy->getAllProperties();
+        // proxy->callMethod("Get")
+        //     .onInterface("org.freedesktop.DBus.Properties")
+        //     .storeResultsTo(metadata);
+        auto player_props =
+            props.onInterface("org.freedesktop.DBus.Properties");
+
+        // Extract the track name from the metadata
+        // auto title = player_props.find("xesam:title");
+        // if (title != metadata.end()) {
+        //     std::string trackName = it->second.get<std::string>();
+        //     std::cout << "Track Name: " << trackName << std::endl;
+        // } else {
+        //     std::cerr << "Track name not found in metadata." << std::endl;
+        // }
+    } catch (const sdbus::Error& e) {
+        std::cerr << "D-Bus error: [" << e.getName() << "] " << e.getMessage()
+                  << std::endl;
+        return 1;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+int main() {
+    dbus_get_audio_name();
+    // pulse_sound_detect();
+    // ui();
     return 0;
 }

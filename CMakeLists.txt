@@ -29,6 +29,7 @@ target_link_libraries(visi
   PRIVATE ftxui::component
   PRIVATE pulse
   PRIVATE pulse-simple
+  PRIVATE sdbus-c++
 )
 
 # Find PulseAudio libraries
