@@ -88,29 +88,31 @@ void ui() {
     screen.Loop(component_renderer);
 }
 
+void callMethod(sdbus::IProxy* proxy) {
+    proxy->callMethod("Next").onInterface("org.mpris.MediaPlayer2.Player");
+}
+
 int dbus_get_audio_name() {
     try {
         // Create a connection to the system bus
         std::unique_ptr<sdbus::IConnection> connection =
             sdbus::createSystemBusConnection();
-        std::cout << "Connected to system bus." << std::endl;
 
-        sdbus::ServiceName destination{"org.mpris.MediaPlayer2.mpv"};
+        sdbus::ServiceName destination{"org.mpris.MediaPlayer2.spotify"};
         sdbus::ObjectPath objectPath{"/org/mpris/MediaPlayer2"};
 
         // Create a proxy for the mpv player interface
         auto proxy = sdbus::createProxy(destination, objectPath);
-        std::cout << "Proxy created for " << destination << " at " << objectPath
-                  << std::endl;
+        if (proxy)
+            std::cout << "Proxy created for " << destination << " at "
+                      << objectPath << std::endl;
 
         // Call the Get method on the Metadata property
         std::map<std::string, sdbus::Variant> metadata;
-        auto props = proxy->getAllProperties();
-        // proxy->callMethod("Get")
-        //     .onInterface("org.freedesktop.DBus.Properties")
-        //     .storeResultsTo(metadata);
-        auto player_props =
-            props.onInterface("org.freedesktop.DBus.Properties");
+        callMethod(&*proxy);
+
+        auto player_props = proxy->getProperty("Metadata")
+                                .onInterface("org.mpris.MediaPlayer2.Player");
 
         // Extract the track name from the metadata
         // auto title = player_props.find("xesam:title");
