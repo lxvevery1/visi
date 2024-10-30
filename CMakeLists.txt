@@ -20,7 +20,7 @@ FetchContent_MakeAvailable(ftxui)
 project(visi LANGUAGES CXX VERSION 1.0.0)
 
 # Add executable
-add_executable(visi src/dbus_audio.cpp)
+add_executable(visi src/main.cpp src/dbus/dbus_audio.cpp)
 
 # Link libraries
 target_link_libraries(visi

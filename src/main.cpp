@@ -18,6 +18,8 @@
 #include <ftxui/screen/color.hpp> // for Color, Color::Red, Color::Blue, Color::Green, ftxui
 #include <ftxui/screen/screen.hpp> // for Pixel
 
+#include "./dbus/dbus_metadata_picker.h"
+
 using namespace ftxui;
 
 void ui() {
@@ -83,8 +85,13 @@ void ui() {
     screen.Loop(component_renderer);
 }
 
+void get_audio_name() {
+    DBusMetadataPicker dbus_metadata_picker;
+    dbus_metadata_picker.dbus_get_audio_name();
+}
+
 int main() {
-    dbus_get_audio_name();
+    get_audio_name();
     // pulse_sound_detect();
     // ui();
     return 0;
