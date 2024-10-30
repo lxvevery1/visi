@@ -3,7 +3,6 @@
 ///
 
 #include <cmath> // for sin, cos
-#include <iostream>
 #include <sdbus-c++/IProxy.h>
 #include <string>  // for string, basic_string
 #include <utility> // for move
@@ -18,10 +17,6 @@
 #include <ftxui/dom/elements.hpp> // for canvas, Element, separator, hbox, operator|, border
 #include <ftxui/screen/color.hpp> // for Color, Color::Red, Color::Blue, Color::Green, ftxui
 #include <ftxui/screen/screen.hpp> // for Pixel
-
-#include <fftw3.h>
-
-#include <sdbus-c++/sdbus-c++.h>
 
 using namespace ftxui;
 
@@ -86,51 +81,6 @@ void ui() {
 
     auto screen = ScreenInteractive::FitComponent();
     screen.Loop(component_renderer);
-}
-
-void callMethod(sdbus::IProxy* proxy) {
-    proxy->callMethod("Next").onInterface("org.mpris.MediaPlayer2.Player");
-}
-
-int dbus_get_audio_name() {
-    try {
-        // Create a connection to the system bus
-        std::unique_ptr<sdbus::IConnection> connection =
-            sdbus::createSystemBusConnection();
-
-        sdbus::ServiceName destination{"org.mpris.MediaPlayer2.spotify"};
-        sdbus::ObjectPath objectPath{"/org/mpris/MediaPlayer2"};
-
-        // Create a proxy for the mpv player interface
-        auto proxy = sdbus::createProxy(destination, objectPath);
-        if (proxy)
-            std::cout << "Proxy created for " << destination << " at "
-                      << objectPath << std::endl;
-
-        // Call the Get method on the Metadata property
-        std::map<std::string, sdbus::Variant> metadata;
-        callMethod(&*proxy);
-
-        auto player_props = proxy->getProperty("Metadata")
-                                .onInterface("org.mpris.MediaPlayer2.Player");
-
-        // Extract the track name from the metadata
-        // auto title = player_props.find("xesam:title");
-        // if (title != metadata.end()) {
-        //     std::string trackName = it->second.get<std::string>();
-        //     std::cout << "Track Name: " << trackName << std::endl;
-        // } else {
-        //     std::cerr << "Track name not found in metadata." << std::endl;
-        // }
-    } catch (const sdbus::Error& e) {
-        std::cerr << "D-Bus error: [" << e.getName() << "] " << e.getMessage()
-                  << std::endl;
-        return 1;
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-    return 0;
 }
 
 int main() {
