@@ -1,5 +1,5 @@
 ///
-/// C++ FTXUI Audio Vizualizer Project
+/// C++ FTXUI Audio Visualizer Project
 ///
 
 #include <cmath> // for sin, cos

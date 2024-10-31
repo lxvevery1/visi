@@ -5,6 +5,8 @@
 
 #include "dbus_metadata_picker.h"
 
+using std::string;
+
 int DBusMetadataPicker::dbus_get_audio_name() {
     try {
         // Create a connection to the session bus
@@ -30,12 +32,26 @@ int DBusMetadataPicker::dbus_get_audio_name() {
         auto metadataMap =
             metadata.get<std::map<std::string, sdbus::Variant>>();
         auto title = metadataMap.find("xesam:title");
+        auto artist = metadataMap.find("xesam:artist");
         auto album = metadataMap.find("xesam:album");
 
         if (title != metadataMap.end()) {
             std::string trackName = title->second.get<std::string>();
+            std::vector<std::string> artistName =
+                artist->second.get<std::vector<string>>();
             std::string albumName = album->second.get<std::string>();
             std::cout << "Track Name: " << trackName << std::endl;
+
+            std::cout << "Artist Name: ";
+            if (artistName.size() > 1) {
+                for (size_t i = 0; i < artistName.size(); ++i) {
+                    std::cout << artistName[i] << ", ";
+                }
+            } else {
+                std::cout << artistName[0];
+            }
+            std::cout << std::endl;
+
             std::cout << "Album Name: " << albumName << std::endl;
         } else {
             std::cerr << "Error: Track title not found in Metadata."
